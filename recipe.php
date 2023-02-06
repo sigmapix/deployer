@@ -89,6 +89,10 @@ task('status', function() {
     run('cd {{deploy_path}} && {{bin/git}} status --branch --porcelain');
 })->verbose();
 
+task('update', function () {
+    runLocally('cd deployer && wget -O recipe.php "https://raw.githubusercontent.com/sigmapix/deployer/master/recipe.php"');
+});
+
 // Task functions
 function done($message) {
     writeln('<info>✔</info> ' . $message);
