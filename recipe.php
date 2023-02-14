@@ -15,6 +15,7 @@ set('composer_options', '--no-interaction --no-progress --no-scripts');
 set('bin/console', '{{dcea}} {{sudo}} php bin/console'); // Or "app/console"
 set('console_options', '--env=prod');
 set('bin/mysqldump', '{{dcea}} {{sudo}} mysqldump');
+set('bin/mysql', '{{dcea}} {{sudo}} mysql');
 
 // Recipe tasks
 task('deploy:git:pull', function () {
@@ -62,24 +63,41 @@ task('deploy:fast', ['deploy:git:pull']);
 after('deploy', 'deploy:success');
 after('deploy:fast', 'deploy:success');
 
+
+
+
 // Database tasks
 task('database:update', ['database:get', 'database:load']);
 task('database:get', function () {
     cd('{{deploy_path}}');
     run('{{bin/mysqldump}} --opt --single-transaction --no-autocommit -Q --compress --result-file={{alias}}.db.sql -h {{db_host}} -u {{db_user}} -p{{db_password}} {{db_name}}');
-    info('Database dumped !');
+    info('Database dumped!');
     run('gzip -f {{alias}}.db.sql');
-    info('Database zipped !');
+    info('Database zipped!');
     download('{{deploy_path}}/{{alias}}.db.sql.gz', 'database/{{alias}}.db.sql.gz');
-    info('Database downloaded !');
+    info('Database downloaded!');
     run('rm {{alias}}.db.sql.gz');
 });
 task('database:load', function () {
     runLocally('gzip -dk database/{{alias}}.db.sql.gz');
     runLocally('{{LOCAL_MYSQL}} < database/{{alias}}.db.sql');
     runLocally('rm database/{{alias}}.db.sql');
-    info('Database loaded !');
+    info('Database loaded!');
 });
+task('database:access', function () {
+    cd('{{deploy_path}}');
+    run('{{bin/mysql}} -h {{db_host}} -u {{db_user}} -p{{db_password}} -e "use {{db_name}}"');
+    done('Database access granted!');
+});
+task('database:mysql', function () {
+    command('{{bin/mysql}} -h {{db_host}} -u {{db_user}} -p{{db_password}} -e "use {{db_name}}; %command%;"', 'mysql');
+});
+task('database:mysql:show', function () {
+    cd('{{deploy_path}}');
+    runv('{{bin/mysql}} -h {{db_host}} -u {{db_user}} -p{{db_password}} -e "use {{db_name}}; show tables;"');
+});
+
+
 
 // Other tasks
 task('log', function() {
@@ -88,12 +106,46 @@ task('log', function() {
 task('status', function() {
     run('cd {{deploy_path}} && {{bin/git}} status --branch --porcelain');
 })->verbose();
+task('command', function () {
+    command('{{dcea}} {{sudo}} %command%');
+});
 
+
+
+// Recipe update
 task('update', function () {
     runLocally('cd deployer && wget -O recipe.php "https://raw.githubusercontent.com/sigmapix/deployer/master/recipe.php"');
 });
 
+
+
 // Task functions
 function done($message) {
     writeln('<info>✔</info> ' . $message);
+}
+function runv($command) {
+    $result = run($command);
+    writeln($result);
+}
+function command($pattern, $logfile = 'history') {
+    $command = ask('Which command to execute?');
+
+    $historyFilename = __DIR__ . '/' . $logfile . '.log';
+    $history = file_exists($historyFilename) ? explode(PHP_EOL, file_get_contents($historyFilename)) : [];
+    if ($command == '' && $history) {
+        $command = askChoice('Select from history', $history);
+    }
+    if ($command) {
+        $confirm = askConfirmation(sprintf('Do you confirm this command : "%s" ?', $command));
+        if ($confirm) {
+            cd('{{deploy_path}}');
+            runv(str_replace('%command%', $command, $pattern));
+            done('Command successfully executed!');
+
+            $history[] = $command;
+            file_put_contents($historyFilename, implode(PHP_EOL, array_unique($history)));
+        }
+    } else {
+        writeln('No command to execute!');
+    }
 }
