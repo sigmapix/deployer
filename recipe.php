@@ -24,6 +24,10 @@ task('deploy:git:pull', function () {
     done('Pull done!');
 })->verbose();
 task('deploy:cache:clear', function () {
+    run('cd {{deploy_path}} && {{bin/console}} cache:clear {{console_options}}');
+    done('Cache clear done!');
+});
+task('deploy:cache:clear:no-warmup', function () {
     run('cd {{deploy_path}} && {{bin/console}} cache:clear --no-warmup {{console_options}}');
     done('Cache clear done!');
 });
