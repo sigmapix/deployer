@@ -12,17 +12,16 @@ set('bin/sh', '{{dcea}} {{sudo}} sh');
 set('bin/php', '{{dcea}} {{sudo}} php');
 set('bin/composer', '{{dcea}} {{sudo}} composer');
 set('composer_options', '--no-interaction --no-progress --no-scripts');
-set('bin/console', '{{dcea}} {{sudo}} php bin/console'); // Or "app/console"
+set('bin/console', '{{bin/php}} bin/console'); // Or "app/console"
 set('console_options', '--env=prod');
 set('bin/mysqldump', '{{dcea}} {{sudo}} mysqldump');
 set('bin/mysql', '{{dcea}} {{sudo}} mysql');
 
 // Recipe tasks
 task('deploy:git:pull', function () {
-    $output = run('cd {{deploy_path}} && {{bin/git}} pull');
-    // writeln($output);
+    runv('cd {{deploy_path}} && {{bin/git}} pull');
     done('Pull done!');
-})->verbose();
+});
 task('deploy:cache:clear', function () {
     run('cd {{deploy_path}} && {{bin/console}} cache:clear {{console_options}}');
     done('Cache clear done!');
