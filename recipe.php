@@ -8,6 +8,7 @@ set('current_path', '{{deploy_path}}');
 set('sudo', 'sudo --user www-data');
 set('bin/git', 'git');
 set('dcea', ''); // Empty if no docker or something like "docker compose exec -T apache" otherwise
+set('dcem', '{{dcea}} {{sudo}}');
 set('bin/sh', '{{dcea}} {{sudo}} sh');
 set('bin/php', '{{dcea}} {{sudo}} php');
 set('bin/composer', '{{dcea}} {{sudo}} composer');
@@ -15,7 +16,7 @@ set('composer_options', '--no-interaction --no-progress --no-scripts');
 set('bin/console', '{{bin/php}} bin/console'); // Or "app/console"
 set('console_options', '--env=prod');
 set('bin/mysqldump', '{{dcea}} {{sudo}} mysqldump');
-set('bin/mysql', '{{dcea}} {{sudo}} mysql');
+set('bin/mysql', '{{dcem}} mysql');
 
 // Recipe tasks
 task('deploy:git:pull', function () {
