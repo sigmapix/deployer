@@ -113,7 +113,13 @@ task('status', function() {
 task('command', function () {
     command('{{dcea}} {{sudo}} %command%');
 });
-
+task('git:download-modified-files', function () {
+    cd('{{deploy_path}}');
+    $modifiedFiles = explode(PHP_EOL,run('git diff --name-status | cut -f2'));
+    foreach ($modifiedFiles as $modifiedFile) {
+        download('{{deploy_path}}'.$modifiedFile, $modifiedFile);
+    }
+});
 
 
 // Recipe update
