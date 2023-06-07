@@ -135,7 +135,7 @@ task('git:download-modified-files', function () {
 
 // Recipe update
 task('update', function () {
-    runLocally('cd deployer && wget -O recipe.php "https://raw.githubusercontent.com/sigmapix/deployer/master/recipe.php"');
+    runLocally('cd deployer && curl -o recipe.php "https://raw.githubusercontent.com/sigmapix/deployer/master/recipe.php"');
 });
 
 
