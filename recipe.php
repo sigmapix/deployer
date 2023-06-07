@@ -170,3 +170,13 @@ function command($pattern, $logfile = 'history') {
         writeln('No command to execute!');
     }
 }
+
+// Needs to be reviewed by everyone
+function loadSqlFileInMysqlDockerContainer($remotePath)
+{
+    $user = '$MYSQL_USER';
+    $isGzipped = strpos($remotePath, '.gz') !== null;
+    $cat = $isGzipped ? 'zcat' : 'cat';
+    $fileNameInContainer = $isGzipped ? 'db.sql.gz' : 'db.sql';
+    run('docker compose run --rm -v '.$remotePath.':/tmp/'.$fileNameInContainer.' mysql sh -c \'export MYSQL_PWD=$MYSQL_PASSWORD ; '.$cat.' /tmp/'.$fileNameInContainer.' | mysql -u '.$user.' -h mysql $MYSQL_DATABASE\'', [], 3600);
+}
