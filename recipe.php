@@ -4,6 +4,8 @@ namespace Deployer;
 
 require 'recipe/common.php';
 
+option('origin', null, \Symfony\Component\Console\Input\InputOption::VALUE_OPTIONAL, 'When you need a host as an origin. Ex: copy from origin to destination.', $default = null);
+
 set('current_path', '{{deploy_path}}');
 set('sudo', 'sudo --user www-data');
 set('bin/git', 'git');
@@ -81,6 +83,15 @@ task('database:get', function () {
     download('{{deploy_path}}/{{alias}}.db.sql.gz', 'database/{{alias}}.db.sql.gz');
     info('Database downloaded!');
     run('rm {{alias}}.db.sql.gz');
+});
+task('database:send', function () {
+    $alias = input()->getOption('origin');
+    if ($alias === null) {
+        $alias = 'prod';
+        warning("No origin host was specified, <options=bold>$alias</> was used by default.");
+    }
+    upload(__DIR__."/database/$alias.db.sql.gz", "{{deploy_path}}database/$alias.db.sql.gz");
+    done('Database uploaded!');
 });
 task('database:load', function () {
     runLocally('gzip -dk database/{{alias}}.db.sql.gz');
