@@ -90,7 +90,7 @@ task('database:send', function () {
         $alias = 'prod';
         warning("No origin host was specified, <options=bold>$alias</> was used by default.");
     }
-    upload(__DIR__."/database/$alias.db.sql.gz", "{{deploy_path}}database/$alias.db.sql.gz");
+    upload("database/$alias.db.sql.gz", "{{deploy_path}}database/$alias.db.sql.gz");
     done('Database uploaded!');
 });
 task('database:load', function () {
