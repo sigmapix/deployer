@@ -89,9 +89,9 @@ task('database:send', function () {
     $alias = input()->getOption('origin');
     if ($alias === null) {
         $alias = 'prod';
-        warning("No origin host was specified, <options=bold>$alias</> was used by default.");
+        warning("No origin host was specified, <options=bold>$alias</> was used by default. To specify the host, use the --origin option.");
     }
-    upload("database/$alias.db.sql.gz", "{{deploy_path}}database/$alias.db.sql.gz");
+    upload(__DIR__."/../database/$alias.db.sql.gz", "{{deploy_path}}database/$alias.db.sql.gz");
     done('Database uploaded!');
 });
 task('database:load', function () {
