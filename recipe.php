@@ -5,6 +5,7 @@ namespace Deployer;
 require 'recipe/common.php';
 
 option('origin', null, \Symfony\Component\Console\Input\InputOption::VALUE_OPTIONAL, 'When you need a host as an origin. Ex: copy from origin to destination.', $default = null);
+option('light', null, \Symfony\Component\Console\Input\InputOption::VALUE_NONE, 'When you need to run a  light version of a command.');
 
 set('current_path', '{{deploy_path}}');
 set('sudo', 'sudo --user www-data');
