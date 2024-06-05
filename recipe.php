@@ -10,6 +10,7 @@ option('light', null, \Symfony\Component\Console\Input\InputOption::VALUE_NONE, 
 set('current_path', '{{deploy_path}}');
 set('sudo', 'sudo --user www-data');
 set('bin/git', 'git');
+set('dc', ''); // Empty if no docker or something like "docker compose exec -T apache" otherwise
 set('dcea', ''); // Empty if no docker or something like "docker compose exec -T apache" otherwise
 set('dcem', '{{dcea}} {{sudo}}');
 set('bin/sh', '{{dcea}} {{sudo}} sh');
@@ -176,8 +177,8 @@ function command($pattern, $logfile = 'history') {
 function loadSqlFileInMysqlDockerContainer($remotePath)
 {
     $user = '$MYSQL_USER';
-    $isGzipped = strpos($remotePath, '.gz') !== null;
+    $isGzipped = strpos($remotePath, '.gz') != false;
     $cat = $isGzipped ? 'zcat' : 'cat';
     $fileNameInContainer = $isGzipped ? 'db.sql.gz' : 'db.sql';
-    run('docker compose run --rm -v '.$remotePath.':/tmp/'.$fileNameInContainer.' mysql sh -c \'export MYSQL_PWD=$MYSQL_PASSWORD ; '.$cat.' /tmp/'.$fileNameInContainer.' | mysql -u '.$user.' -h mysql $MYSQL_DATABASE\'', [], 3600);
+    run('{{dc}} run --rm -v '.$remotePath.':/tmp/'.$fileNameInContainer.' mysql sh -c \'export MYSQL_PWD=$MYSQL_PASSWORD ; '.$cat.' /tmp/'.$fileNameInContainer.' | mysql -u '.$user.' -h mysql $MYSQL_DATABASE\'', [], 3600);
 }
