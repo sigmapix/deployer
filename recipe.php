@@ -133,7 +133,18 @@ task('git:download-modified-files', function () {
         download('{{deploy_path}}'.$modifiedFile, $modifiedFile);
     }
 });
-
+task('git:checkout', function () {
+    cd('{{deploy_path}}');
+    run('git fetch --all');
+    $allBranches = explode(PHP_EOL, run('git branch -a'));
+    $allBranches = array_map(function($branchName) { return substr(str_replace('remotes/origin/','', $branchName), 2); }, $allBranches);
+    $branch = ask('Quelle branche utiliser ? (autocompletion activée)', null, $allBranches);
+    if (!$branch) {
+        writeln('<error>Merci de spécifier la branche</error>');
+        error();
+    }
+    run('git checkout '.$branch);
+});
 
 // Recipe update
 task('update', function () {
