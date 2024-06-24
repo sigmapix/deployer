@@ -86,6 +86,13 @@ task('database:get', function () {
     info('Database downloaded!');
     run('rm {{alias}}.db.sql.gz');
 });
+task('database:get:docker', function () {
+    cd('{{deploy_path}}');
+    run('{{bin/mysql}} sh -c \'export MYSQL_PWD=$MYSQL_PASSWORD ; mysqldump --opt --single-transaction --no-autocommit -Q --compress -u $MYSQL_USER $MYSQL_DATABASE\' | gzip -c > /tmp/{{alias}}.db.sql.gz');
+    download('/tmp/{{alias}}.db.sql.gz', 'database/{{alias}}.db.sql.gz');
+    run('rm /tmp/{{alias}}.db.sql.gz');
+    done('Database downloaded!');
+});
 task('database:send', function () {
     $alias = input()->getOption('origin');
     if ($alias === null) {
