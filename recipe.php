@@ -200,3 +200,30 @@ function loadSqlFileInMysqlDockerContainer($remotePath)
     $fileNameInContainer = $isGzipped ? 'db.sql.gz' : 'db.sql';
     run('{{dc}} run --rm -v '.$remotePath.':/tmp/'.$fileNameInContainer.' mysql sh -c \'export MYSQL_PWD=$MYSQL_PASSWORD ; '.$cat.' /tmp/'.$fileNameInContainer.' | mysql -u '.$user.' -h mysql $MYSQL_DATABASE\'', [], 3600);
 }
+
+
+task('database:loadnew', function () {
+    list($exportsAsArray, $exportsAsString) = generateImportEnvStatement('.env.local');
+    $databases = listDatabaseDumpFiles();
+    if (empty($databases[0])) {
+        writeln('<error>No databases found</error>');
+        exit(1);
+    } elseif (count($databases) == 1) {
+        $fileNameInContainer = $databases[0];
+    } else {
+        $fileNameInContainer = askChoice('What file would you like to load?', $databases);
+    }
+    info($fileNameInContainer);
+    run( 'zcat < '.$fileNameInContainer.' | docker exec -i '.$exportsAsArray['MYSQL_HOST'].' sh -c \''.$exportsAsString.' export MYSQL_PWD=$MYSQL_PASSWORD ; mysql -u $MYSQL_USER -h $MYSQL_HOST $MYSQL_DATABASE\'', [], 3600);
+})->select('LoadDBAllowed=ok');
+
+function generateImportEnvStatement($envFilePath):array {
+    $envs = parse_ini_file($envFilePath, false, INI_SCANNER_RAW);
+    return [$envs, implode("", array_map(function ($k, $v) { return "export $k=$v; "; }, array_keys($envs), array_values($envs)))];
+};
+function listDatabaseDumpFiles()
+{
+    run('mkdir -p {{deploy_path}}/database'); // creates directory if not exists
+    cd('{{deploy_path}}');
+    return explode(PHP_EOL, run('find database -type f \( -name "*.sql" -o -name "*.sql.gz" \)'));
+}
