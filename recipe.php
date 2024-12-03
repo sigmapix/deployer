@@ -214,6 +214,7 @@ task('database:loadnew', function () {
         $fileNameInContainer = askChoice('What file would you like to load?', $databases);
     }
     info($fileNameInContainer);
+    run( 'docker exec -i '.$exportsAsArray['MYSQL_HOST'].' sh -c \''.$exportsAsString.' export MYSQL_PWD=$MYSQL_PASSWORD ; mysql -u $MYSQL_USER -h $MYSQL_HOST --execute="CREATE SCHEMA IF NOT EXISTS '.$exportsAsArray['MYSQL_DATABASE'].' ;"\'', [], 3600);
     run( 'zcat < '.$fileNameInContainer.' | docker exec -i '.$exportsAsArray['MYSQL_HOST'].' sh -c \''.$exportsAsString.' export MYSQL_PWD=$MYSQL_PASSWORD ; mysql -u $MYSQL_USER -h $MYSQL_HOST $MYSQL_DATABASE\'', [], 3600);
 })->select('LoadDBAllowed=ok');
 
