@@ -219,7 +219,8 @@ task('database:loadnew', function () {
 })->select('LoadDBAllowed=ok');
 
 function generateImportEnvStatement($envFilePath):array {
-    $envs = parse_ini_file($envFilePath, false, INI_SCANNER_RAW);
+    $envFileContent = run('cat {{deploy_path}}/'.$envFilePath);
+    $envs = parse_ini_string($envFileContent, false, INI_SCANNER_RAW);
     return [$envs, implode("", array_map(function ($k, $v) { return "export $k=$v; "; }, array_keys($envs), array_values($envs)))];
 };
 function listDatabaseDumpFiles()
