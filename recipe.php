@@ -233,3 +233,11 @@ function listDatabaseDumpFiles()
     cd('{{deploy_path}}');
     return explode(PHP_EOL, run('find database -type f \( -name "*.sql" -o -name "*.sql.gz" \)'));
 }
+
+function breakIfProduction()
+{
+    if (currentHost()->getHostname() == 'prod') {
+        writeln('This command should never run on prod!');
+        die();
+    }
+}
