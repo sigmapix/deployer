@@ -156,6 +156,9 @@ task('git:checkout', function () {
 // Recipe update
 task('update', function () {
     runLocally('cd deployer && curl -o recipe.php "https://raw.githubusercontent.com/sigmapix/deployer/master/recipe.php"');
+    if (file_exists(__DIR__ . '/wordpress.php')) {
+        runLocally('cd deployer && curl -o wordpress.php "https://raw.githubusercontent.com/sigmapix/deployer/master/wordpress.php"');
+    }
 });
 
 
