@@ -156,9 +156,6 @@ task('git:checkout', function () {
 // Recipe update
 task('update', function () {
     runLocally('cd deployer && curl -o recipe.php "https://raw.githubusercontent.com/sigmapix/deployer/master/recipe.php"');
-    if (file_exists(__DIR__ . '/wordpress.php')) {
-        runLocally('cd deployer && curl -o wordpress.php "https://raw.githubusercontent.com/sigmapix/deployer/master/wordpress.php"');
-    }
 });
 
 
@@ -206,7 +203,13 @@ function loadSqlFileInMysqlDockerContainer($remotePath)
 
 
 task('database:loadnew', function () {
-    list($exportsAsArray, $exportsAsString) = generateImportEnvStatement('.env.local');
+    $exportsAsArray = parseDatabaseUrl([
+        '{{deploy_path}}/.env.dev.local',
+        '{{deploy_path}}/.env.dev',
+        '{{deploy_path}}/.env.local',
+        '{{deploy_path}}/.env',
+    ]);
+    $exportsAsString = generateExportsAsString($exportsAsArray);
     $databases = listDatabaseDumpFiles();
     if (empty($databases[0])) {
         writeln('<error>No databases found</error>');
@@ -217,30 +220,49 @@ task('database:loadnew', function () {
         $fileNameInContainer = askChoice('What file would you like to load?', $databases);
     }
     info($fileNameInContainer);
-    $dropSchema = '';
-    if (askConfirmation('Would you like to drop the schema before?')) {
-        $dropSchema = 'DROP SCHEMA IF EXISTS '.$exportsAsArray['MYSQL_DATABASE'].'; ';
-    }
-    run( 'docker exec -i '.$exportsAsArray['MYSQL_HOST'].' sh -c \''.$exportsAsString.' export MYSQL_PWD=$MYSQL_PASSWORD ; mysql -u $MYSQL_USER -h $MYSQL_HOST --execute="'.$dropSchema.'CREATE SCHEMA IF NOT EXISTS \`'.$exportsAsArray['MYSQL_DATABASE'].'\` ;"\'', [], 3600);
-    run( 'zcat < '.$fileNameInContainer.' | docker exec -i '.$exportsAsArray['MYSQL_HOST'].' sh -c \''.$exportsAsString.' export MYSQL_PWD=$MYSQL_PASSWORD ; mysql -u $MYSQL_USER -h $MYSQL_HOST $MYSQL_DATABASE\'', [], 3600);
+    $cat = str_ends_with($fileNameInContainer, '.gz') ? 'gunzip -c' : 'cat';
+    run( $cat.' < '.$fileNameInContainer.' | LC_ALL=C sed \'/GTID_PURGED/,/;$/d\' | docker exec -i '.$exportsAsArray['MYSQL_HOST'].' sh -c \''.$exportsAsString.' mysql -u $MYSQL_USER -h $MYSQL_HOST --password=$MYSQL_PWD $MYSQL_DATABASE\'', [], 3600);
 })->select('LoadDBAllowed=ok');
 
+function generateExportsAsString($envs) {
+    return implode("", array_map(function ($k, $v) { return "export $k=$v; "; }, array_keys($envs), array_values($envs)));
+}
+
 function generateImportEnvStatement($envFilePath):array {
-    $envFileContent = run('cat {{deploy_path}}/'.$envFilePath);
-    $envs = parse_ini_string($envFileContent, false, INI_SCANNER_RAW);
-    return [$envs, implode("", array_map(function ($k, $v) { return "export $k=$v; "; }, array_keys($envs), array_values($envs)))];
+    return parse_ini_file($envFilePath, false, INI_SCANNER_RAW);
 };
+
+function parseDatabaseUrl(string|array $envFilePath): array {
+    $paths = is_array($envFilePath) ? $envFilePath : [$envFilePath];
+    $databaseUrl = null;
+    $foundIn = null;
+    foreach ($paths as $path) {
+        $content = run('cat ' . $path . ' 2>/dev/null || true');
+        if (empty($content)) {
+            continue;
+        }
+        $envs = parse_ini_string($content, false, INI_SCANNER_RAW);
+        if (!empty($envs['DATABASE_URL'])) {
+            $databaseUrl = $envs['DATABASE_URL'];
+            $foundIn = $path;
+            break;
+        }
+    }
+    if (!$databaseUrl) {
+        throw new \RuntimeException('DATABASE_URL not found in any of: ' . implode(', ', $paths));
+    }
+    $parsed = parse_url($databaseUrl);
+    return [
+        'MYSQL_HOST'     => $parsed['host'] ?? 'localhost',
+        'MYSQL_PORT'     => $parsed['port'] ?? 3306,
+        'MYSQL_USER'     => $parsed['user'] ?? 'root',
+        'MYSQL_PWD' => $parsed['pass'] ?? '',
+        'MYSQL_DATABASE' => ltrim($parsed['path'] ?? '', '/'),
+    ];
+}
 function listDatabaseDumpFiles()
 {
     run('mkdir -p {{deploy_path}}/database'); // creates directory if not exists
     cd('{{deploy_path}}');
     return explode(PHP_EOL, run('find database -type f \( -name "*.sql" -o -name "*.sql.gz" \)'));
-}
-
-function breakIfProduction()
-{
-    if (currentHost()->getHostname() == 'prod') {
-        writeln('This command should never run on prod!');
-        die();
-    }
 }
