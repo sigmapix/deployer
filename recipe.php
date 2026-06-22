@@ -156,6 +156,9 @@ task('git:checkout', function () {
 // Recipe update
 task('update', function () {
     runLocally('cd deployer && curl -o recipe.php "https://raw.githubusercontent.com/sigmapix/deployer/master/recipe.php"');
+    if (file_exists(__DIR__ . '/wordpress.php')) {
+        runLocally('cd deployer && curl -o wordpress.php "https://raw.githubusercontent.com/sigmapix/deployer/master/wordpress.php"');
+    }
 });
 
 
@@ -265,4 +268,12 @@ function listDatabaseDumpFiles()
     run('mkdir -p {{deploy_path}}/database'); // creates directory if not exists
     cd('{{deploy_path}}');
     return explode(PHP_EOL, run('find database -type f \( -name "*.sql" -o -name "*.sql.gz" \)'));
+}
+
+function breakIfProduction()
+{
+    if (currentHost()->getHostname() == 'prod') {
+        writeln('This command should never run on prod!');
+        die();
+    }
 }
